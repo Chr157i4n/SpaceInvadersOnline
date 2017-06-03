@@ -83,13 +83,20 @@ void tastatureingaben()
     if ((wxGetKeyState((wxKeyCode)' ') || wxGetKeyState((wxKeyCode)'w') || wxGetKeyState((wxKeyCode)'W') || wxGetKeyState(WXK_UP)) && (Spieler[0].ShootingAllowed()))
     {
 
-        Spieler[0].schiessen(Schuss);
+
         if (!mute) Soundschuss.play();
+
+        if (Spiel.getGameMode()!=spiel::client)
+        {
+            Spieler[0].schiessen(Schuss);
+        }
+
 
         if (Spiel.getGameMode()==spiel::client)
         {
             clientSchuss=true;
         }
+        Spieler[0].pauseShooting();
 
 
 
@@ -182,7 +189,7 @@ int lastAlien()
 
 void endeerkennug()
 {
-    if (Spieler[0].getLeben()<=0 && Spiel.isGameRunning())
+    if (Spieler[0].getLeben()<=0 && (Spieler[1].getLeben()<=0) && Spiel.isGameRunning())
     {
         Spiel.writeLog("Game lost, because the Player has no life left");
         Spiel.stopGame();
@@ -264,8 +271,14 @@ void sendPositions()
   // char data[100]="test";
 
 // UDP socket:
-sf::IpAddress recipient(Spiel.getIpAdress());
-unsigned short port = Spiel.getPort();
+sf::IpAddress recipient(Spiel.getIpAdressConnect());
+unsigned short port = Spiel.getPortConnect();
+
+
+    /*wxString meldung5;
+    meldung5 << port;
+    wxMessageBox("Sende an PORT" +meldung5);
+*/
 
 sf::Packet packet;
 for (int i=0; i<40;i++)
@@ -288,37 +301,63 @@ for (int i=0; i<10;i++)
   packet << Spieler[0].getX() << Spieler[0].getY() << Spieler[0].isActive();
   packet << Spieler[0].getPunkte();
 
+  wxString mystring=Spieler[0].getNameVorschalg();
+    std::string stlstring = std::string(mystring.mb_str());
+    packet << stlstring;
+
 
 if (socket1.send(packet, recipient, port) != sf::Socket::Done)
 {
     // error...
-    timer->stop();
+    //timer->stop();
     wxMessageBox("failed to send");
 }
 }
 
 void receiveCommands()
 {
-
+    /*timer->stop();
+    wxString meldung5;
+    meldung5 << socket1.getLocalPort();
+    wxMessageBox("Emfpange auf PORT" +meldung5);
+*/
 // UDP socket:
 sf::IpAddress sender;
 unsigned short port;
-
 
 sf::Packet packet;
 if (socket1.receive(packet, sender, port) != sf::Socket::Done)
 {
     // error...
     //timer->stop();
+
     //wxMessageBox("failed to receive");
-}
+} else {
 int x,y;
-bool isactive;
+bool isactive=false;
+
+std::string clientIP;
+int clientPORT;
+
+packet >> clientIP >> clientPORT;
+wxString clientIPwx(clientIP);
+Spiel.setIpAdressConnect(clientIPwx);
+Spiel.setPortConnect(clientPORT);
+
+//timer->stop();
+//wxMessageBox(Spiel.getIpAdressConnect());
 
 packet >> x >> y >> isactive >> clientSchuss >> clientGetroffen;
 Spieler[1].setX(x);
 Spieler[1].setY(y);
 Spieler[1].setActive(isactive);
+
+std::string stlstring;
+packet >> stlstring;
+// assuming your string is encoded as UTF-8, change the wxConv* parameter as needed
+wxString mystring(stlstring.c_str(), wxConvUTF8);
+Spieler[1].setName(mystring);
+
 
 if (clientSchuss)
 {
@@ -335,7 +374,7 @@ if (clientGetroffen)
 
 
 
-
+}
 }
 
 
@@ -351,18 +390,17 @@ std::size_t received;
 sf::IpAddress sender;
 unsigned short port;
 
-
+    /*wxString meldung5;
+    meldung5 << socket1.getLocalPort();
+    wxMessageBox("Empfange auf Port " +meldung5);
+*/
 sf::Packet packet;
 if (socket1.receive(packet, sender, port) != sf::Socket::Done)
 {
-    // error...
-    timer->stop();
-    wxMessageBox("failed to receive");
-}
 
-
+} else {
 int x,y;
-bool isactive;
+bool isactive=false;
 
 for (int i=0; i<40;i++)
 {
@@ -404,18 +442,43 @@ packet >> x >> y >> isactive;
 
 packet >> x;
 Spieler[0].setPunkte(x);
+
+std::string stlstring;
+packet >> stlstring;
+// assuming your string is encoded as UTF-8, change the wxConv* parameter as needed
+wxString mystring(stlstring.c_str(), wxConvUTF8);
+Spieler[1].setName(mystring);
+}
 }
 
 void sendCommands()
 {
   ///Befehle senden
-  sf::IpAddress recipient(Spiel.getIpAdress());
-unsigned short port = Spiel.getPort();
+  sf::IpAddress recipient(Spiel.getIpAdressConnect());
+    std::string clientIP;
+
+  if (Spiel.getMultiplayerMode()==spiel::lan)
+  clientIP = recipient.getLocalAddress().toString();
+
+   if (Spiel.getMultiplayerMode()==spiel::online)
+  clientIP = recipient.getPublicAddress().toString();
+
+  int clientPORT = Spiel.getPortEigen();
+unsigned short port = Spiel.getPortConnect();
+
+    /*timer->stop();
+    wxString meldung5;
+    meldung5 << port;
+    wxMessageBox("Sende an Port "+meldung5);
+*/
 
 sf::Packet packet;
 
-  packet << Spieler[0].getX() << Spieler[0].getY() << Spieler[0].isActive() << clientSchuss << clientGetroffen;
+  packet << clientIP << clientPORT << Spieler[0].getX() << Spieler[0].getY() << Spieler[0].isActive() << clientSchuss << clientGetroffen;
 
+    wxString mystring=Spieler[0].getNameVorschalg();
+    std::string stlstring = std::string(mystring.mb_str());
+    packet << stlstring;
 
 
 if (socket1.send(packet, recipient, port) != sf::Socket::Done)
@@ -516,6 +579,7 @@ public:
             Spieler[0].setPunkte(0);
             Spieler[0].allowShooting();
             Spieler[0].setLeben(Spiel.getlebenNEU());
+            Spieler[0].activate();
             if (Spiel.isGameRunning()) timer->start(Spiel.getSpielgeschwindigkeit());
             Spiel.startNewRound(bBoss,bAlien);
 
@@ -651,10 +715,7 @@ bool MyApp::OnInit()
      Spiel.writeLog("");
     Spiel.writeLog("Game has started");
 
-   wxFileConfig config("SpaceInvaders");
     wxFileConfig* configFile = new wxFileConfig(wxT(""),wxT(""),wxT("config.ini"),wxT(""),wxCONFIG_USE_RELATIVE_PATH);
-
-
     wxString str;
     configFile->Read("GameMode",&str);
    if (str=="server")
@@ -664,29 +725,52 @@ bool MyApp::OnInit()
    else
     {Spiel.setGameMode(spiel::offline);}
 
-     configFile->Read("Server",&str);
-     Spiel.setIpAdress(str);
-      configFile->Read("Port",&str);
-    Spiel.setPort(wxAtoi(str));
-    Spiel.writeLog("Gameconfig loaded");
+     configFile->Read("MultiplayerMode",&str);
+   if (str=="lan")
+   {Spiel.setMultiplayerMode(spiel::lan);}
+    else if (str=="online")
+   {Spiel.setMultiplayerMode(spiel::online);}
 
+
+     if (Spiel.getGameMode()==spiel::client)
+     {configFile->Read("Server",&str);
+        Spiel.setIpAdressConnect(str);}
+
+        configFile->Read("Server",&str);
+     Spiel.setIpAdressConnect(str);
+
+
+
+      configFile->Read("Port",&str);
+      Spiel.setPortEigen(wxAtoi(str));
+    Spiel.writeLog("Gameconfig loaded");
 
     if (Spiel.getGameMode()==spiel::server)
     {
+
         // bind the socket to a port
-        if (socket1.bind(54000) != sf::Socket::Done)
+        if (socket1.bind(Spiel.getPortEigen()) != sf::Socket::Done)
         {
         // error...
         wxMessageBox("Überprüfe deine Ports");
         }
+        else
+        {
+            Spiel.setPortEigen(socket1.getLocalPort());
+        }
     }
     if (Spiel.getGameMode()==spiel::client)
     {
+        Spiel.setPortConnect(wxAtoi(str));
         // bind the socket to a port
-        if (socket1.bind(54001) != sf::Socket::Done)
+        if (socket1.bind(sf::Socket::AnyPort) != sf::Socket::Done)
         {
         // error...
         wxMessageBox("Überprüfe deine Ports");
+        }
+        else
+        {
+         Spiel.setPortEigen(socket1.getLocalPort());
         }
     }
 
@@ -710,6 +794,7 @@ bool MyApp::OnInit()
             tmp = wxString::Format(wxT("%.1lf"), value1);
         lbupdate->Append( "Gamefiles:  " + tmp );*/
 
+        Spieler[0].activate();
 
 
     std::srand(std::time(0));   ///Zufallszahlen generieren
@@ -727,6 +812,13 @@ bool MyApp::OnInit()
                                                             ///funktionieren, wenn SpaceInvaders im Vordergrund ist
 
     tLoadAllFiles.join();
+
+    wxString mystring;
+    mystring << Spiel.getPortEigen();
+   // wxMessageBox("Eigener Port:"+ mystring);
+
+
+
 
     return true;
 }
@@ -857,7 +949,7 @@ void BasicDrawPane::render( wxDC& dc )
 
     ///Rendering während das Spiel läuft
 
-    if (Spiel.isGameRunning())
+    if (Spiel.isGameRunning() || Spiel.getGameMode()!=spiel::offline)
     {
 
         SetBackgroundStyle(wxBG_STYLE_PAINT);
@@ -892,10 +984,27 @@ void BasicDrawPane::render( wxDC& dc )
              for (int i=0; i<2; i++)
             {
                if (Spieler[i].isActive())
-            dc.DrawBitmap(bRaumschiff,Spieler[i].getX(),Spieler[i].getY());
+                {
+                    dc.DrawBitmap(bRaumschiff,Spieler[i].getX(),Spieler[i].getY());
+                }
             }
         }
+            if (Spiel.getGameMode()!=spiel::offline)
+            {
 
+                if (Spieler[0].isActive())
+                {
+                    dc.SetTextForeground( *wxRED );
+                    dc.SetFont(wxFontInfo(5).FaceName("Distant Galaxy").Light());
+                    dc.DrawText(Spieler[0].getNameVorschalg(),Spieler[0].getX(),Spieler[0].getY()+50);
+                }
+                  if (Spieler[1].isActive())
+                {
+                    dc.SetTextForeground( *wxYELLOW );
+                    dc.SetFont(wxFontInfo(5).FaceName("Distant Galaxy").Light());
+                    dc.DrawText(Spieler[1].getName(),Spieler[1].getX(),Spieler[1].getY()+50);
+                }
+            }
 
             for (int i=0; i<40; i++)
             {

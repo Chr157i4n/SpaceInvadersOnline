@@ -46,7 +46,7 @@ void spiel::werteuebernehmen()
 void spiel::startNewRound(wxBitmap bBoss[],wxBitmap bAlien)
 {
     mSpieler->setNameVorschlag();
-    mSpieler[0].activate();
+    //mSpieler[0].activate();
     mSpieler->setX(250-16);
 
     for(int i=0;i<100;i++)

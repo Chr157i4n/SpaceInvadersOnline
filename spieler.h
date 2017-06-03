@@ -22,7 +22,7 @@ class spieler : public objekt
         int getLeben(){return mLeben;};
 
         void allowShooting(){darfschiessen=true;};
-        void pauseShooting(){darfschiessen=false;};
+        void pauseShooting(){darfschiessen=false;schusszaehler=0;};
         bool ShootingAllowed(){return darfschiessen;};
 
         wxString getName(){return mName;};

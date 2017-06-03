@@ -41,7 +41,7 @@ if ( (mX>Alien[c].getX()) && (mX+mBreite<Alien[c].getX()+Alien[c].getBreite()) &
                 deactivate();
                 Spiel->aliensGeschwindigkeitErhoehen(Alien);
 
-                if (Spiel->isGameRunning())
+                if (Spiel->isGameRunning() || Spiel->getGameMode()==spiel::server)
                 {Spiel->addPunkte();}               ///Punkte hinzufügen
 
             return true;

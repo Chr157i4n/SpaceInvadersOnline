@@ -30,7 +30,8 @@ void alienschuss::trefferpruefen(spieler* ZuPruefenderSpieler,spiel* Spiel,bool*
                 ZuPruefenderSpieler->setLeben(ZuPruefenderSpieler->getLeben()-1);
                 (*clientGetroffen)=true;
                 }
-
+                if (ZuPruefenderSpieler->getLeben()<=0)
+                ZuPruefenderSpieler->deactivate();
                 deactivate();
                 Spiel->spawnReinigen();
 

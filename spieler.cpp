@@ -2,6 +2,7 @@
 #include "schuss.h"
 #include <wx/textfile.h>
 #include <direct.h>
+#include <wx/fileconf.h>
 
 spieler::spieler()
 {
@@ -10,9 +11,7 @@ spieler::spieler()
     mHoehe=45;
     mBreite=28;
     mLeben=-100;
-
 setNameVorschlag();
-
 
 }
 
@@ -23,24 +22,8 @@ spieler::~spieler()
 
 void spieler::setNameVorschlag()
 {
-   _mkdir("Highscore");
-
-    mNameVorschlag="";
-  wxTextFile highscoreTXT( wxT("Highscore/Highscore.txt") );
-    wxString tmp;
-    highscoreTXT.Create("Highscore/Highscore.txt");             ///erstellt nur, falls nicht vorhanden
-    highscoreTXT.Open("Highscore/Highscore.txt");
-
-
-    if (highscoreTXT.GetLineCount()>0)
-    {
-        tmp = highscoreTXT.GetFirstLine();
-
-                for (int c=7; c<tmp.Length(); c++)
-                {
-                    mNameVorschlag+=tmp[c];
-                }
-    }
+   wxFileConfig* configFile = new wxFileConfig(wxT(""),wxT(""),wxT("config.ini"),wxT(""),wxCONFIG_USE_RELATIVE_PATH);
+    configFile->Read("Name",&mNameVorschlag);
 }
 
 void spieler::schiessenerlauben()

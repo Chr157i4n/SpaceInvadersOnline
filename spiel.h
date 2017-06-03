@@ -13,7 +13,7 @@ class spiel
 {
      public:
              enum gameMode {offline=1,server=2,client=3};
-
+             enum multiplayerMode {lan=1,online=2};
 
             void writeLog(wxString logtext);
 
@@ -52,20 +52,29 @@ class spiel
             int getGameMode(){return gameMode;};
             void setGameMode(spiel::gameMode mode){gameMode=mode;};
 
-            void setPort(int port){mPort=port;};
-            int getPort(){return mPort;};
+            int getMultiplayerMode(){return multiplayerMode;};
+            void setMultiplayerMode(spiel::multiplayerMode mode){multiplayerMode=mode;};
 
-            void setIpAdress(wxString IpAdress){mIpAdress=IpAdress;};
-            wxString getIpAdress(){return mIpAdress;};
+            void setPortEigen(int port){mPortEigen=port;};
+            int getPortEigen(){return mPortEigen;};
+            void setPortConnect(int port){mPortConnect=port;};
+            int getPortConnect(){return mPortConnect;};
+
+            void setIpAdressEigen(wxString IpAdress){mIpAdressEigen=IpAdress;};
+            wxString getIpAdressEigen(){return mIpAdressEigen;};
+
+             void setIpAdressConnect(wxString IpAdress){mIpAdressConnect=IpAdress;};
+            wxString getIpAdressConnect(){return mIpAdressConnect;};
 
 
     private:
 
 
     gameMode gameMode= offline;
+    multiplayerMode multiplayerMode = lan;
     //int gameMode=2; ///1 = Offline, 2 = Server, 3 = Client
-    wxString mIpAdress="0";
-    int mPort=0;
+    wxString mIpAdressEigen="0",mIpAdressConnect="0";
+    int mPortEigen=0,mPortConnect=0;;
 
 
 
